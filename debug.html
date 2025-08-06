@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-result {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+        .success {
+            border-left-color: #4CAF50;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        .loading {
+            border-left-color: #2196F3;
+        }
+        .url {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <h1>RSS Debug Test</h1>
+    <div>
+        <button onclick="testSimpleFeed()">Test Simple Feed (ArXiv)</button>
+        <button onclick="testDirectFeed()">Test Direct Feed (No Proxy)</button>
+        <button onclick="testAllProxies()">Test All Proxies</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+    <div id="results"></div>
+
+    <script>
+        const testFeeds = [
+            {
+                name: 'ArXiv AI',
+                url: 'https://arxiv.org/rss/cs.AI'
+            },
+            {
+                name: 'Hacker News',
+                url: 'https://news.ycombinator.com/rss'
+            },
+            {
+                name: 'Reddit ML',
+                url: 'https://www.reddit.com/r/MachineLearning/.rss'
+            }
+        ];
+
+        const proxies = [
+            'https://api.allorigins.win/get?url=',
+            'https://cors-anywhere.herokuapp.com/',
+            'https://thingproxy.freeboard.io/fetch/',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://corsproxy.io/?'
+        ];
+
+        function addResult(content, className = '') {
+            const div = document.createElement('div');
+            div.className = `test-result ${className}`;
+            div.innerHTML = content;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testSimpleFeed() {
+            addResult('<h3>Testing Simple Feed (ArXiv)</h3>', 'loading');
+            
+            try {
+                const proxy = 'https://api.allorigins.win/get?url=';
+                const feedUrl = 'https://arxiv.org/rss/cs.AI';
+                const fullUrl = proxy + encodeURIComponent(feedUrl);
+                
+                console.log('Testing URL:', fullUrl);
+                
+                const response = await fetch(fullUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': 'Mozilla/5.0 (compatible; RSS-Test/1.0)'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.contents) {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
+                    const items = xmlDoc.querySelectorAll('item');
+                    
+                    addResult(`
+                        <h4>✅ SUCCESS - ArXiv AI</h4>
+                        <div class="url">${feedUrl}</div>
+                        <p>Status: ${response.status}</p>
+                        <p>Items found: ${items.length}</p>
+                        <details>
+                            <summary>First 3 items:</summary>
+                            <pre>${Array.from(items).slice(0, 3).map(item => {
+                                const title = item.querySelector('title')?.textContent;
+                                const link = item.querySelector('link')?.textContent;
+                                return `Title: ${title}\nLink: ${link}\n---`;
+                            }).join('\n')}</pre>
+                        </details>
+                    `, 'success');
+                } else {
+                    addResult(`
+                        <h4>❌ FAILED - No contents</h4>
+                        <div class="url">${feedUrl}</div>
+                        <p>Response: ${JSON.stringify(data, null, 2)}</p>
+                    `, 'error');
+                }
+                
+            } catch (error) {
+                addResult(`
+                    <h4>❌ ERROR</h4>
+                    <div class="url">ArXiv AI</div>
+                    <p>Error: ${error.message}</p>
+                    <p>Stack: ${error.stack}</p>
+                `, 'error');
+            }
+        }
+
+        async function testDirectFeed() {
+            addResult('<h3>Testing Direct Feed (No Proxy)</h3>', 'loading');
+            
+            try {
+                const feedUrl = 'https://arxiv.org/rss/cs.AI';
+                
+                console.log('Testing direct URL:', feedUrl);
+                
+                const response = await fetch(feedUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/xml, text/xml, */*',
+                        'User-Agent': 'Mozilla/5.0 (compatible; RSS-Test/1.0)'
+                    }
+                });
+                
+                console.log('Direct response status:', response.status);
+                
+                if (response.ok) {
+                    const xmlText = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                    const items = xmlDoc.querySelectorAll('item');
+                    
+                    addResult(`
+                        <h4>✅ SUCCESS - Direct Access</h4>
+                        <div class="url">${feedUrl}</div>
+                        <p>Status: ${response.status}</p>
+                        <p>Items found: ${items.length}</p>
+                    `, 'success');
+                } else {
+                    addResult(`
+                        <h4>❌ FAILED - Direct Access</h4>
+                        <div class="url">${feedUrl}</div>
+                        <p>Status: ${response.status}</p>
+                    `, 'error');
+                }
+                
+            } catch (error) {
+                addResult(`
+                    <h4>❌ ERROR - Direct Access</h4>
+                    <p>Error: ${error.message}</p>
+                    <p>This is expected due to CORS restrictions</p>
+                `, 'error');
+            }
+        }
+
+        async function testAllProxies() {
+            addResult('<h3>Testing All Proxies</h3>', 'loading');
+            
+            for (const feed of testFeeds) {
+                addResult(`<h4>Testing: ${feed.name}</h4>`, 'loading');
+                
+                for (let i = 0; i < proxies.length; i++) {
+                    const proxy = proxies[i];
+                    try {
+                        console.log(`Testing ${feed.name} with proxy ${i + 1}: ${proxy}`);
+                        
+                        const response = await fetch(proxy + encodeURIComponent(feed.url), {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json, text/plain, */*',
+                                'User-Agent': 'Mozilla/5.0 (compatible; RSS-Test/1.0)'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.contents) {
+                                const parser = new DOMParser();
+                                const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
+                                const items = xmlDoc.querySelectorAll('item');
+                                
+                                addResult(`
+                                    <h5>✅ SUCCESS - ${feed.name}</h5>
+                                    <div class="url">${feed.url}</div>
+                                    <p>Proxy: ${proxy}</p>
+                                    <p>Items: ${items.length}</p>
+                                `, 'success');
+                                break; // Found working proxy, move to next feed
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Proxy ${i + 1} failed for ${feed.name}:`, error.message);
+                        if (i === proxies.length - 1) {
+                            addResult(`
+                                <h5>❌ FAILED - ${feed.name}</h5>
+                                <div class="url">${feed.url}</div>
+                                <p>All proxies failed</p>
+                            `, 'error');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Auto-start basic test
+        window.addEventListener('load', () => {
+            setTimeout(testSimpleFeed, 1000);
+        });
+    </script>
+</body>
+</html> 

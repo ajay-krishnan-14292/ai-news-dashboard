@@ -225,44 +225,52 @@ class AINewsDashboard {
 
     async loadNews(forceRefresh = false) {
         this.showLoading();
-        console.log('Starting to load news...');
+        console.log('🚀 Starting to load news...');
+        console.log(`📊 Total feeds to test: ${this.feeds.length}`);
 
         try {
             // Always fetch fresh data - no caching
-            console.log('Fetching from RSS feeds...');
+            console.log('🔄 Fetching from RSS feeds...');
             const allNews = [];
             const promises = this.feeds.map(feed => this.fetchRSSFeed(feed));
             
             const results = await Promise.allSettled(promises);
             
             let successfulFeeds = 0;
+            let totalItems = 0;
+            
             results.forEach((result, index) => {
                 if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
                     allNews.push(...result.value);
                     successfulFeeds++;
+                    totalItems += result.value.length;
                     console.log(`✅ ${this.feeds[index].name}: ${result.value.length} items`);
                 } else {
                     console.log(`❌ ${this.feeds[index].name}: Failed or no items`);
+                    if (result.status === 'rejected') {
+                        console.error(`Error details for ${this.feeds[index].name}:`, result.reason);
+                    }
                 }
             });
 
-            console.log(`Total successful feeds: ${successfulFeeds}/${this.feeds.length}`);
+            console.log(`📈 Total successful feeds: ${successfulFeeds}/${this.feeds.length}`);
+            console.log(`📊 Total news items collected: ${totalItems}`);
 
             // Sort by date (newest first)
             allNews.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             // If no news fetched, show sample data
             if (allNews.length === 0) {
-                console.log('No RSS feeds loaded, showing sample data');
+                console.log('⚠️ No RSS feeds loaded, showing sample data');
                 allNews.push(...this.getSampleData());
             }
 
-            console.log(`Total news items: ${allNews.length}`);
+            console.log(`🎯 Final news items to display: ${allNews.length}`);
             this.newsData = allNews;
             this.filterAndDisplay();
 
         } catch (error) {
-            console.error('Error loading news:', error);
+            console.error('💥 Error loading news:', error);
             this.showError();
         }
     }
@@ -273,14 +281,17 @@ class AINewsDashboard {
         for (let i = 0; i < proxies.length; i++) {
             try {
                 const proxy = proxies[i];
-                console.log(`Trying proxy ${i + 1}/${proxies.length} for ${feed.name}`);
+                console.log(`🔍 Trying proxy ${i + 1}/${proxies.length} for ${feed.name}`);
                 
                 // Create a timeout promise
                 const timeoutPromise = new Promise((_, reject) => {
                     setTimeout(() => reject(new Error('Request timeout')), 10000);
                 });
                 
-                const fetchPromise = fetch(proxy + encodeURIComponent(feed.url), {
+                const fullUrl = proxy + encodeURIComponent(feed.url);
+                console.log(`🌐 Requesting: ${fullUrl}`);
+                
+                const fetchPromise = fetch(fullUrl, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json, text/plain, */*',
@@ -291,15 +302,19 @@ class AINewsDashboard {
                 
                 const response = await Promise.race([fetchPromise, timeoutPromise]);
                 
+                console.log(`📡 Response status for ${feed.name}: ${response.status}`);
+                
                 if (!response.ok) {
-                    console.warn(`HTTP ${response.status} for ${feed.name} with proxy ${i + 1}`);
+                    console.warn(`⚠️ HTTP ${response.status} for ${feed.name} with proxy ${i + 1}`);
                     continue; // Try next proxy
                 }
                 
                 const data = await response.json();
+                console.log(`📦 Response data structure for ${feed.name}:`, Object.keys(data));
                 
                 if (!data.contents) {
-                    console.warn(`No contents in response for ${feed.name}`);
+                    console.warn(`⚠️ No contents in response for ${feed.name}`);
+                    console.log(`📄 Full response for ${feed.name}:`, data);
                     continue; // Try next proxy
                 }
 
@@ -309,14 +324,16 @@ class AINewsDashboard {
                 // Check for parsing errors
                 const parseError = xmlDoc.querySelector('parsererror');
                 if (parseError) {
-                    console.warn(`XML parsing error for ${feed.name}:`, parseError.textContent);
+                    console.warn(`⚠️ XML parsing error for ${feed.name}:`, parseError.textContent);
                     continue; // Try next proxy
                 }
                 
                 const items = xmlDoc.querySelectorAll('item');
+                console.log(`📋 Found ${items.length} items in ${feed.name}`);
+                
                 const news = [];
 
-                items.forEach(item => {
+                items.forEach((item, index) => {
                     const title = item.querySelector('title')?.textContent?.trim();
                     const link = item.querySelector('link')?.textContent?.trim();
                     const description = item.querySelector('description')?.textContent?.trim();
@@ -324,7 +341,7 @@ class AINewsDashboard {
 
                     if (title && link) {
                         const date = this.parseDate(pubDate);
-                        news.push({
+                        const newsItem = {
                             title: this.cleanText(title),
                             url: link,
                             description: this.cleanText(description || ''),
@@ -333,7 +350,18 @@ class AINewsDashboard {
                             date: date,
                             image: this.extractImageFromDescription(description),
                             author: this.extractAuthorFromDescription(description) || 'Unknown Author'
-                        });
+                        };
+                        
+                        news.push(newsItem);
+                        
+                        // Log first few items for debugging
+                        if (index < 3) {
+                            console.log(`📰 Item ${index + 1} from ${feed.name}:`, {
+                                title: newsItem.title.substring(0, 50) + '...',
+                                url: newsItem.url,
+                                date: newsItem.date
+                            });
+                        }
                     }
                 });
 
@@ -344,6 +372,7 @@ class AINewsDashboard {
                 console.error(`❌ Error fetching ${feed.name} with proxy ${i + 1}:`, error.message);
                 if (i === proxies.length - 1) {
                     // Last proxy failed, return empty array
+                    console.error(`💥 All proxies failed for ${feed.name}`);
                     return [];
                 }
                 // Continue to next proxy
@@ -377,7 +406,7 @@ class AINewsDashboard {
             
             return new Date();
         } catch (error) {
-            console.warn('Error parsing date:', dateString, error);
+            console.warn('⚠️ Error parsing date:', dateString, error);
             return new Date();
         }
     }
@@ -407,6 +436,7 @@ class AINewsDashboard {
             ? this.newsData 
             : this.newsData.filter(item => item.type === this.currentTab);
 
+        console.log(`🎯 Filtered data: ${this.filteredData.length} items for tab '${this.currentTab}'`);
         this.displayNews();
         this.updateLastUpdated();
     }
@@ -428,6 +458,7 @@ class AINewsDashboard {
                 </div>
             `;
         } else {
+            console.log(`🎨 Rendering ${this.filteredData.length} news items`);
             container.innerHTML = this.filteredData.map((item, index) => `
                 <div class="news-item" data-url="${item.url}" data-index="${index}" tabindex="0">
                     <div class="news-image">
