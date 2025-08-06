@@ -73,16 +73,6 @@ class AINewsDashboard {
     }
 
     setupEventListeners() {
-        // Theme toggle
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            this.toggleTheme();
-        });
-
-        // Refresh button
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadNews(true);
-        });
-
         // Retry button
         document.getElementById('retry-btn').addEventListener('click', () => {
             this.loadNews(true);
@@ -102,14 +92,22 @@ class AINewsDashboard {
 
         // News card clicks
         document.addEventListener('click', (e) => {
-            if (e.target.closest('.news-card')) {
-                const card = e.target.closest('.news-card');
+            if (e.target.closest('.news-item')) {
+                const card = e.target.closest('.news-item');
                 const url = card.dataset.url;
                 if (url) {
                     window.open(url, '_blank');
                 }
             }
         });
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.handleSearch(e.target.value);
+            });
+        }
     }
 
     async loadNews(forceRefresh = false) {
@@ -230,7 +228,9 @@ class AINewsDashboard {
                             description: this.cleanText(description || ''),
                             source: feed.name,
                             type: feed.type,
-                            date: pubDate ? new Date(pubDate) : new Date()
+                            date: pubDate ? new Date(pubDate) : new Date(),
+                            image: this.extractImageFromDescription(description),
+                            author: this.extractAuthorFromDescription(description) || 'Unknown Author'
                         });
                     }
                 });
@@ -249,6 +249,18 @@ class AINewsDashboard {
         }
         
         return [];
+    }
+
+    extractImageFromDescription(description) {
+        if (!description) return null;
+        const imgMatch = description.match(/<img[^>]+src="([^"]+)"/i);
+        return imgMatch ? imgMatch[1] : null;
+    }
+
+    extractAuthorFromDescription(description) {
+        if (!description) return null;
+        const authorMatch = description.match(/by\s+([^<>\n]+)/i);
+        return authorMatch ? authorMatch[1].trim() : null;
     }
 
     cleanText(text) {
@@ -287,11 +299,16 @@ class AINewsDashboard {
         } else {
             container.innerHTML = this.filteredData.map((item, index) => `
                 <div class="news-item" data-url="${item.url}" data-index="${index}" tabindex="0">
-                    <h3 class="news-title">${item.title}</h3>
-                    ${item.description ? `<p class="news-description">${item.description}</p>` : ''}
-                    <div class="news-meta">
-                        <span class="news-source">${item.source}</span>
-                        <span class="news-date">${this.formatDate(item.date)}</span>
+                    <div class="news-image">
+                        ${item.image ? `<img src="${item.image}" alt="${item.title}" onerror="this.style.display='none'">` : 
+                          `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 0.9rem;">No Image</div>`}
+                    </div>
+                    <div class="news-content">
+                        <h3 class="news-title">${item.title}</h3>
+                        <div class="news-meta">
+                            <span class="news-author">By ${item.author}</span>
+                            <span class="news-date">${this.formatDate(item.date)}</span>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -299,6 +316,22 @@ class AINewsDashboard {
 
         newsContainer.classList.remove('hidden');
         this.selectedIndex = -1;
+    }
+
+    handleSearch(query) {
+        if (!query.trim()) {
+            this.filterAndDisplay();
+            return;
+        }
+
+        const searchTerm = query.toLowerCase();
+        this.filteredData = this.newsData.filter(item => 
+            item.title.toLowerCase().includes(searchTerm) ||
+            item.description.toLowerCase().includes(searchTerm) ||
+            item.author.toLowerCase().includes(searchTerm)
+        );
+
+        this.displayNews();
     }
 
     formatDate(date) {
@@ -329,7 +362,7 @@ class AINewsDashboard {
     }
 
     handleKeyboard(e) {
-        const cards = document.querySelectorAll('.news-card');
+        const cards = document.querySelectorAll('.news-item');
         
         switch(e.key) {
             case 'j':
@@ -363,25 +396,12 @@ class AINewsDashboard {
     }
 
     updateSelection() {
-        document.querySelectorAll('.news-card').forEach((card, index) => {
+        document.querySelectorAll('.news-item').forEach((card, index) => {
             card.classList.toggle('selected', index === this.selectedIndex);
             if (index === this.selectedIndex) {
                 card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         });
-    }
-
-    toggleTheme() {
-        const body = document.body;
-        const currentTheme = body.classList.contains('dark-theme') ? 'light' : 'dark';
-        
-        if (currentTheme === 'dark') {
-            body.classList.remove('dark-theme');
-            localStorage.setItem('theme', 'light');
-        } else {
-            body.classList.add('dark-theme');
-            localStorage.setItem('theme', 'dark');
-        }
     }
 
     loadTheme() {
@@ -438,52 +458,44 @@ class AINewsDashboard {
     getSampleData() {
         return [
             {
-                title: "OpenAI Releases GPT-4 Turbo with Improved Performance",
-                url: "https://openai.com/blog/gpt-4-turbo",
-                description: "OpenAI has announced the release of GPT-4 Turbo, featuring improved performance and reduced costs.",
-                source: "OpenAI Blog",
-                type: "blogs",
-                date: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
-            },
-            {
-                title: "Google Introduces Gemini Pro for Advanced AI Tasks",
-                url: "https://ai.googleblog.com/2023/12/gemini-pro.html",
-                description: "Google's latest AI model Gemini Pro offers enhanced capabilities for complex reasoning tasks.",
-                source: "Google AI Blog",
-                type: "blogs",
-                date: new Date(Date.now() - 4 * 60 * 60 * 1000) // 4 hours ago
-            },
-            {
-                title: "MIT Researchers Develop New Approach to AI Safety",
-                url: "https://www.technologyreview.com/2023/12/ai-safety-research",
-                description: "A team at MIT has developed a novel framework for ensuring AI systems behave safely and predictably.",
-                source: "MIT Technology Review",
+                title: "Local Elections See Record Turnout",
+                url: "https://example.com/local-elections",
+                description: "Local elections across the country have seen unprecedented voter participation.",
+                source: "Local News",
                 type: "news",
-                date: new Date(Date.now() - 6 * 60 * 60 * 1000) // 6 hours ago
+                date: new Date(Date.now() - 2 * 60 * 60 * 1000),
+                image: "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+                author: "Amelia Harper"
             },
             {
-                title: "DeepMind's AlphaFold 3 Shows Breakthrough in Protein Structure Prediction",
-                url: "https://deepmind.com/blog/alphafold-3",
-                description: "The latest version of AlphaFold demonstrates unprecedented accuracy in predicting protein structures.",
-                source: "DeepMind Blog",
+                title: "New Study Reveals Health Benefits of Meditation",
+                url: "https://example.com/meditation-study",
+                description: "A comprehensive study shows significant health improvements from regular meditation practice.",
+                source: "Health Research",
                 type: "blogs",
-                date: new Date(Date.now() - 8 * 60 * 60 * 1000) // 8 hours ago
+                date: new Date(Date.now() - 4 * 60 * 60 * 1000),
+                image: "https://images.unsplash.com/photo-1506905925346-21bda4d3266c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+                author: "Ethan Carter"
             },
             {
-                title: "New Research: Attention Mechanisms in Large Language Models",
-                url: "https://arxiv.org/abs/2312.12345",
-                description: "A comprehensive study on attention mechanisms and their role in transformer-based language models.",
-                source: "ArXiv AI",
-                type: "papers",
-                date: new Date(Date.now() - 12 * 60 * 60 * 1000) // 12 hours ago
-            },
-            {
-                title: "VentureBeat: AI Startups Raise Record Funding in Q4 2023",
-                url: "https://venturebeat.com/ai-funding-q4-2023",
-                description: "AI startups have raised over $15 billion in the fourth quarter, marking a new record.",
-                source: "VentureBeat AI",
+                title: "Tech Giant Unveils Latest Smartphone",
+                url: "https://example.com/new-smartphone",
+                description: "The latest smartphone features cutting-edge technology and improved performance.",
+                source: "Tech News",
                 type: "news",
-                date: new Date(Date.now() - 24 * 60 * 60 * 1000) // 1 day ago
+                date: new Date(Date.now() - 6 * 60 * 60 * 1000),
+                image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+                author: "Olivia Bennett"
+            },
+            {
+                title: "Global Leaders Meet to Discuss Climate Change",
+                url: "https://example.com/climate-summit",
+                description: "World leaders gather for crucial climate change discussions and policy agreements.",
+                source: "International News",
+                type: "news",
+                date: new Date(Date.now() - 8 * 60 * 60 * 1000),
+                image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+                author: "Noah Thompson"
             }
         ];
     }

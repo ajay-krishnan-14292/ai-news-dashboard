@@ -3,40 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI News Dashboard</title>
+    <title>News Today</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🤖 AI News Dashboard</h1>
-            <div class="header-controls">
-                <button id="theme-toggle" class="theme-toggle" title="Toggle dark/light mode">
-                    <span class="light-icon">☀️</span>
-                    <span class="dark-icon">🌙</span>
-                </button>
-                <button id="refresh-btn" class="refresh-btn" title="Refresh content">
-                    🔄
-                </button>
+            <div class="header-left">
+                <h1>News Today</h1>
+                <nav class="tabs">
+                    <button class="tab-btn active" data-tab="all">All</button>
+                    <button class="tab-btn" data-tab="news">News</button>
+                    <button class="tab-btn" data-tab="blogs">Blogs</button>
+                    <button class="tab-btn" data-tab="videos">Videos</button>
+                    <button class="tab-btn" data-tab="papers">Papers</button>
+                </nav>
+            </div>
+            <div class="header-right">
+                <div class="search-container">
+                    <input type="text" placeholder="Search" id="search-input">
+                    <button type="button" class="search-btn">🔍</button>
+                </div>
+                <button class="search-icon-btn">🔍</button>
             </div>
         </header>
 
-        <nav class="tabs">
-            <button class="tab-btn active" data-tab="all">All</button>
-            <button class="tab-btn" data-tab="news">News</button>
-            <button class="tab-btn" data-tab="blogs">Blogs</button>
-            <button class="tab-btn" data-tab="videos">Videos</button>
-            <button class="tab-btn" data-tab="papers">Papers</button>
-        </nav>
+        <div class="featured-section">
+            <div class="featured-image">
+                <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80" alt="Cityscape">
+                <div class="image-overlay"></div>
+            </div>
+        </div>
 
         <div class="content">
             <div id="loading" class="loading">
                 <div class="spinner"></div>
-                <p>Loading AI news...</p>
+                <p>Loading news...</p>
             </div>
 
             <div id="error" class="error hidden">
