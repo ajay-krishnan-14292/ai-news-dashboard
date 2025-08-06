@@ -286,14 +286,13 @@ class AINewsDashboard {
             `;
         } else {
             container.innerHTML = this.filteredData.map((item, index) => `
-                <div class="news-card" data-url="${item.url}" data-index="${index}" tabindex="0">
-                    <div class="news-card-header">
+                <div class="news-item" data-url="${item.url}" data-index="${index}" tabindex="0">
+                    <h3 class="news-title">${item.title}</h3>
+                    ${item.description ? `<p class="news-description">${item.description}</p>` : ''}
+                    <div class="news-meta">
                         <span class="news-source">${item.source}</span>
                         <span class="news-date">${this.formatDate(item.date)}</span>
                     </div>
-                    <h3 class="news-title">${item.title}</h3>
-                    ${item.description ? `<p class="news-description">${item.description}</p>` : ''}
-                    <span class="news-type ${item.type}">${item.type}</span>
                 </div>
             `).join('');
         }
@@ -373,11 +372,16 @@ class AINewsDashboard {
     }
 
     toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        const body = document.body;
+        const currentTheme = body.classList.contains('dark-theme') ? 'light' : 'dark';
         
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+        if (currentTheme === 'dark') {
+            body.classList.remove('dark-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.classList.add('dark-theme');
+            localStorage.setItem('theme', 'dark');
+        }
     }
 
     loadTheme() {
@@ -385,7 +389,11 @@ class AINewsDashboard {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         const theme = savedTheme || (prefersDark ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
     }
 
     showLoading() {
