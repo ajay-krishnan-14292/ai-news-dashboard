@@ -8,41 +8,10 @@ class AINewsDashboard {
         this.isLoading = false;
         this.hasMoreNews = true;
         
-        // Load configuration with more valid RSS sources
+        // Load configuration with verified working RSS sources
         this.config = typeof DASHBOARD_CONFIG !== 'undefined' ? DASHBOARD_CONFIG : {
             feeds: [
-                // AI News Sources
-                {
-                    name: 'MIT Technology Review',
-                    url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed',
-                    type: 'news'
-                },
-                {
-                    name: 'VentureBeat AI',
-                    url: 'https://venturebeat.com/category/ai/feed/',
-                    type: 'news'
-                },
-                {
-                    name: 'TechCrunch AI',
-                    url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
-                    type: 'news'
-                },
-                {
-                    name: 'Wired AI',
-                    url: 'https://www.wired.com/tag/artificial-intelligence/feed/',
-                    type: 'news'
-                },
-                {
-                    name: 'The Verge AI',
-                    url: 'https://www.theverge.com/ai-artificial-intelligence/rss/index.xml',
-                    type: 'news'
-                },
-                {
-                    name: 'Ars Technica AI',
-                    url: 'https://feeds.arstechnica.com/arstechnica/technology-lab',
-                    type: 'news'
-                },
-                // AI Research Papers
+                // Verified Working AI News Sources
                 {
                     name: 'ArXiv AI',
                     url: 'https://arxiv.org/rss/cs.AI',
@@ -58,10 +27,41 @@ class AINewsDashboard {
                     url: 'https://arxiv.org/rss/cs.CV',
                     type: 'papers'
                 },
-                // AI Blogs
+                {
+                    name: 'ArXiv Neural and Evolutionary Computing',
+                    url: 'https://arxiv.org/rss/cs.NE',
+                    type: 'papers'
+                },
+                {
+                    name: 'ArXiv Computation and Language',
+                    url: 'https://arxiv.org/rss/cs.CL',
+                    type: 'papers'
+                },
+                // Alternative News Sources (more likely to work)
+                {
+                    name: 'Hacker News',
+                    url: 'https://news.ycombinator.com/rss',
+                    type: 'news'
+                },
+                {
+                    name: 'Reddit r/MachineLearning',
+                    url: 'https://www.reddit.com/r/MachineLearning/.rss',
+                    type: 'news'
+                },
+                {
+                    name: 'Reddit r/artificial',
+                    url: 'https://www.reddit.com/r/artificial/.rss',
+                    type: 'news'
+                },
+                {
+                    name: 'Reddit r/AINews',
+                    url: 'https://www.reddit.com/r/AINews/.rss',
+                    type: 'news'
+                },
+                // Working Blog Sources
                 {
                     name: 'Google AI Blog',
-                    url: 'https://ai.googleblog.com/feeds/posts/default',
+                    url: 'https://ai.googleblog.com/feeds/posts/default?alt=rss',
                     type: 'blogs'
                 },
                 {
@@ -104,7 +104,33 @@ class AINewsDashboard {
                     url: 'https://distill.pub/rss.xml',
                     type: 'blogs'
                 },
-                // AI Videos (YouTube RSS feeds)
+                // Alternative Tech News Sources
+                {
+                    name: 'TechCrunch',
+                    url: 'https://techcrunch.com/feed/',
+                    type: 'news'
+                },
+                {
+                    name: 'VentureBeat',
+                    url: 'https://venturebeat.com/feed/',
+                    type: 'news'
+                },
+                {
+                    name: 'Wired',
+                    url: 'https://www.wired.com/feed/rss',
+                    type: 'news'
+                },
+                {
+                    name: 'The Verge',
+                    url: 'https://www.theverge.com/rss/index.xml',
+                    type: 'news'
+                },
+                {
+                    name: 'Ars Technica',
+                    url: 'https://feeds.arstechnica.com/arstechnica/index',
+                    type: 'news'
+                },
+                // YouTube RSS feeds (usually work well)
                 {
                     name: 'Two Minute Papers',
                     url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg',
@@ -119,12 +145,24 @@ class AINewsDashboard {
                     name: '3Blue1Brown',
                     url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw',
                     type: 'videos'
+                },
+                {
+                    name: 'Lex Fridman',
+                    url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCSHZKyawb77ixDdsGog4iWA',
+                    type: 'videos'
+                },
+                {
+                    name: 'Sentdex',
+                    url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCfzlCWGWYyIQ0aLC5wEcGxw',
+                    type: 'videos'
                 }
             ],
             corsProxy: 'https://api.allorigins.win/get?url=',
             corsProxyFallbacks: [
                 'https://cors-anywhere.herokuapp.com/',
                 'https://thingproxy.freeboard.io/fetch/',
+                'https://api.codetabs.com/v1/proxy?quest=',
+                'https://corsproxy.io/?',
                 'https://api.codetabs.com/v1/proxy?quest='
             ]
         };
@@ -234,7 +272,7 @@ class AINewsDashboard {
         
         for (let i = 0; i < proxies.length; i++) {
             try {
-                const proxyUrl = proxies[i];
+                const proxy = proxies[i];
                 console.log(`Trying proxy ${i + 1}/${proxies.length} for ${feed.name}`);
                 
                 // Create a timeout promise
@@ -242,7 +280,7 @@ class AINewsDashboard {
                     setTimeout(() => reject(new Error('Request timeout')), 10000);
                 });
                 
-                const fetchPromise = fetch(proxyUrl + encodeURIComponent(feed.url), {
+                const fetchPromise = fetch(proxy + encodeURIComponent(feed.url), {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json, text/plain, */*',
