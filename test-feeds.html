@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Feed Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .feed { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .loading { background: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>RSS Feed Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const feeds = [
+            { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/' },
+            { name: 'Google AI Blog', url: 'https://ai.googleblog.com/feeds/posts/default?alt=rss' },
+            { name: 'ArXiv AI', url: 'https://arxiv.org/rss/cs.AI' },
+            { name: 'OpenAI Blog', url: 'https://openai.com/blog/rss.xml' }
+        ];
+
+        async function testFeed(feed) {
+            const div = document.createElement('div');
+            div.className = 'feed loading';
+            div.innerHTML = `<h3>${feed.name}</h3><p>Testing...</p>`;
+            document.getElementById('results').appendChild(div);
+
+            try {
+                const proxyUrl = 'https://api.allorigins.win/get?url=';
+                const response = await fetch(proxyUrl + encodeURIComponent(feed.url));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.contents) {
+                    throw new Error('No contents in response');
+                }
+
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
+                const items = xmlDoc.querySelectorAll('item');
+                
+                div.className = 'feed success';
+                div.innerHTML = `<h3>${feed.name}</h3><p>✅ Success! Found ${items.length} items</p>`;
+                
+            } catch (error) {
+                div.className = 'feed error';
+                div.innerHTML = `<h3>${feed.name}</h3><p>❌ Error: ${error.message}</p>`;
+            }
+        }
+
+        // Test all feeds
+        feeds.forEach(testFeed);
+    </script>
+</body>
+</html> 

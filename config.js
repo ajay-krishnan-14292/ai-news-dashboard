@@ -4,10 +4,10 @@
 const DASHBOARD_CONFIG = {
     // RSS Feeds Configuration - Updated with working URLs
     feeds: [
-        // News Sources
+        // News Sources - More reliable feeds
         {
-            name: 'MIT Technology Review',
-            url: 'https://www.technologyreview.com/feed/',
+            name: 'TechCrunch AI',
+            url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
             type: 'news'
         },
         {
@@ -16,8 +16,8 @@ const DASHBOARD_CONFIG = {
             type: 'news'
         },
         {
-            name: 'TechCrunch AI',
-            url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
+            name: 'MIT Technology Review',
+            url: 'https://www.technologyreview.com/feed/',
             type: 'news'
         },
         
@@ -43,11 +43,6 @@ const DASHBOARD_CONFIG = {
             type: 'blogs'
         },
         {
-            name: 'Towards Data Science',
-            url: 'https://towardsdatascience.com/feed',
-            type: 'blogs'
-        },
-        {
             name: 'Hugging Face Blog',
             url: 'https://huggingface.co/blog/feed.xml',
             type: 'blogs'
@@ -55,6 +50,11 @@ const DASHBOARD_CONFIG = {
         {
             name: 'Microsoft AI Blog',
             url: 'https://blogs.microsoft.com/ai/feed/',
+            type: 'blogs'
+        },
+        {
+            name: 'Towards Data Science',
+            url: 'https://towardsdatascience.com/feed',
             type: 'blogs'
         },
         
@@ -90,11 +90,11 @@ const DASHBOARD_CONFIG = {
     itemsPerPage: 50,
     
     // CORS Proxy (primary and fallback options)
-    corsProxy: 'https://corsproxy.io/?',
+    corsProxy: 'https://api.allorigins.win/get?url=',
     
     // Alternative CORS proxies (uncomment to use if primary fails):
     corsProxyFallbacks: [
-        'https://api.allorigins.win/get?url=',
+        'https://corsproxy.io/?',
         'https://cors-anywhere.herokuapp.com/',
         'https://thingproxy.freeboard.io/fetch/'
     ],
