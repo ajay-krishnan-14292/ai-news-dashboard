@@ -70,13 +70,13 @@ const DASHBOARD_CONFIG = {
     itemsPerPage: 50,
     
     // CORS Proxy (primary and fallback options)
-    corsProxy: 'https://api.allorigins.win/get?url=',
+    corsProxy: 'https://corsproxy.io/?',
     
     // Alternative CORS proxies (uncomment to use if primary fails):
     corsProxyFallbacks: [
+        'https://api.allorigins.win/get?url=',
         'https://cors-anywhere.herokuapp.com/',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://corsproxy.io/?'
+        'https://thingproxy.freeboard.io/fetch/'
     ],
     
     // Keyboard shortcuts

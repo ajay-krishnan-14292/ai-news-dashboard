@@ -114,29 +114,39 @@ class AINewsDashboard {
 
     async loadNews(forceRefresh = false) {
         this.showLoading();
+        console.log('Starting to load news...');
 
         try {
             // Check cache first
             if (!forceRefresh) {
                 const cached = this.getCachedData();
                 if (cached) {
+                    console.log('Using cached data');
                     this.newsData = cached;
                     this.filterAndDisplay();
                     return;
                 }
             }
 
+            console.log('Fetching from RSS feeds...');
             // Fetch from RSS feeds
             const allNews = [];
             const promises = this.feeds.map(feed => this.fetchRSSFeed(feed));
             
             const results = await Promise.allSettled(promises);
             
-            results.forEach(result => {
-                if (result.status === 'fulfilled' && result.value) {
+            let successfulFeeds = 0;
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
                     allNews.push(...result.value);
+                    successfulFeeds++;
+                    console.log(`✅ ${this.feeds[index].name}: ${result.value.length} items`);
+                } else {
+                    console.log(`❌ ${this.feeds[index].name}: Failed or no items`);
                 }
             });
+
+            console.log(`Total successful feeds: ${successfulFeeds}/${this.feeds.length}`);
 
             // Sort by date (newest first)
             allNews.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -147,6 +157,7 @@ class AINewsDashboard {
                 allNews.push(...this.getSampleData());
             }
 
+            console.log(`Total news items: ${allNews.length}`);
             this.newsData = allNews;
             this.cacheData(allNews);
             this.filterAndDisplay();
