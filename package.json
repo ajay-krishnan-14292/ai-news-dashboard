@@ -1,0 +1,31 @@
+{
+  "name": "ai-news-dashboard",
+  "version": "1.0.0",
+  "description": "A lightweight, self-hosted AI news dashboard that aggregates content from RSS feeds",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000",
+    "deploy": "./deploy.sh"
+  },
+  "keywords": [
+    "ai",
+    "news",
+    "dashboard",
+    "rss",
+    "static",
+    "javascript",
+    "html",
+    "css"
+  ],
+  "author": "AI News Dashboard",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ai-news-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ai-news-dashboard/issues"
+  },
+  "homepage": "https://github.com/yourusername/ai-news-dashboard#readme"
+} 
