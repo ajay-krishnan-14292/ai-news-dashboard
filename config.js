@@ -2,12 +2,12 @@
 // Edit this file to customize your RSS feeds and settings
 
 const DASHBOARD_CONFIG = {
-    // RSS Feeds Configuration
+    // RSS Feeds Configuration - Updated with working URLs
     feeds: [
         // News Sources
         {
             name: 'MIT Technology Review',
-            url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed',
+            url: 'https://www.technologyreview.com/feed/',
             type: 'news'
         },
         {
@@ -21,10 +21,10 @@ const DASHBOARD_CONFIG = {
             type: 'news'
         },
         
-        // Blog Sources
+        // Blog Sources - Working URLs
         {
             name: 'Google AI Blog',
-            url: 'https://ai.googleblog.com/feeds/posts/default',
+            url: 'https://ai.googleblog.com/feeds/posts/default?alt=rss',
             type: 'blogs'
         },
         {
@@ -47,8 +47,18 @@ const DASHBOARD_CONFIG = {
             url: 'https://towardsdatascience.com/feed',
             type: 'blogs'
         },
+        {
+            name: 'Hugging Face Blog',
+            url: 'https://huggingface.co/blog/feed.xml',
+            type: 'blogs'
+        },
+        {
+            name: 'Microsoft AI Blog',
+            url: 'https://blogs.microsoft.com/ai/feed/',
+            type: 'blogs'
+        },
         
-        // Research Papers
+        // Research Papers - Working ArXiv feeds
         {
             name: 'ArXiv AI',
             url: 'https://arxiv.org/rss/cs.AI',
@@ -57,6 +67,16 @@ const DASHBOARD_CONFIG = {
         {
             name: 'ArXiv Machine Learning',
             url: 'https://arxiv.org/rss/cs.LG',
+            type: 'papers'
+        },
+        {
+            name: 'ArXiv Computer Vision',
+            url: 'https://arxiv.org/rss/cs.CV',
+            type: 'papers'
+        },
+        {
+            name: 'ArXiv NLP',
+            url: 'https://arxiv.org/rss/cs.CL',
             type: 'papers'
         }
     ],

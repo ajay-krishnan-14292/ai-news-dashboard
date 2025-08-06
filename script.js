@@ -178,21 +178,23 @@ class AINewsDashboard {
                 
                 // Create a timeout promise
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Request timeout')), 10000);
+                    setTimeout(() => reject(new Error('Request timeout')), 15000); // Increased timeout
                 });
                 
                 const fetchPromise = fetch(proxyUrl + encodeURIComponent(feed.url), {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json, text/plain, */*',
-                        'User-Agent': 'Mozilla/5.0 (compatible; AI-News-Dashboard/1.0)'
+                        'User-Agent': 'Mozilla/5.0 (compatible; AI-News-Dashboard/1.0)',
+                        'Cache-Control': 'no-cache'
                     }
                 });
                 
                 const response = await Promise.race([fetchPromise, timeoutPromise]);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    console.warn(`HTTP ${response.status} for ${feed.name} with proxy ${i + 1}`);
+                    continue; // Try next proxy
                 }
                 
                 const data = await response.json();
@@ -233,11 +235,11 @@ class AINewsDashboard {
                     }
                 });
 
-                console.log(`Successfully fetched ${news.length} items from ${feed.name}`);
+                console.log(`✅ Successfully fetched ${news.length} items from ${feed.name}`);
                 return news;
 
             } catch (error) {
-                console.error(`Error fetching ${feed.name} with proxy ${i + 1}:`, error);
+                console.error(`❌ Error fetching ${feed.name} with proxy ${i + 1}:`, error.message);
                 if (i === proxies.length - 1) {
                     // Last proxy failed, return empty array
                     return [];
