@@ -4,25 +4,61 @@ class AINewsDashboard {
         this.filteredData = [];
         this.currentTab = 'all';
         this.selectedIndex = -1;
+        this.page = 1;
+        this.isLoading = false;
+        this.hasMoreNews = true;
         
-        // Load configuration
+        // Load configuration with more valid RSS sources
         this.config = typeof DASHBOARD_CONFIG !== 'undefined' ? DASHBOARD_CONFIG : {
             feeds: [
+                // AI News Sources
                 {
                     name: 'MIT Technology Review',
                     url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed',
                     type: 'news'
                 },
                 {
+                    name: 'VentureBeat AI',
+                    url: 'https://venturebeat.com/category/ai/feed/',
+                    type: 'news'
+                },
+                {
+                    name: 'TechCrunch AI',
+                    url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
+                    type: 'news'
+                },
+                {
+                    name: 'Wired AI',
+                    url: 'https://www.wired.com/tag/artificial-intelligence/feed/',
+                    type: 'news'
+                },
+                {
+                    name: 'The Verge AI',
+                    url: 'https://www.theverge.com/ai-artificial-intelligence/rss/index.xml',
+                    type: 'news'
+                },
+                {
+                    name: 'Ars Technica AI',
+                    url: 'https://feeds.arstechnica.com/arstechnica/technology-lab',
+                    type: 'news'
+                },
+                // AI Research Papers
+                {
                     name: 'ArXiv AI',
                     url: 'https://arxiv.org/rss/cs.AI',
                     type: 'papers'
                 },
                 {
-                    name: 'Towards Data Science',
-                    url: 'https://towardsdatascience.com/feed',
-                    type: 'blogs'
+                    name: 'ArXiv Machine Learning',
+                    url: 'https://arxiv.org/rss/cs.LG',
+                    type: 'papers'
                 },
+                {
+                    name: 'ArXiv Computer Vision',
+                    url: 'https://arxiv.org/rss/cs.CV',
+                    type: 'papers'
+                },
+                // AI Blogs
                 {
                     name: 'Google AI Blog',
                     url: 'https://ai.googleblog.com/feeds/posts/default',
@@ -44,24 +80,58 @@ class AINewsDashboard {
                     type: 'blogs'
                 },
                 {
-                    name: 'VentureBeat AI',
-                    url: 'https://venturebeat.com/category/ai/feed/',
-                    type: 'news'
+                    name: 'Microsoft AI Blog',
+                    url: 'https://blogs.microsoft.com/ai/feed/',
+                    type: 'blogs'
                 },
                 {
-                    name: 'TechCrunch AI',
-                    url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
-                    type: 'news'
+                    name: 'Meta AI Blog',
+                    url: 'https://ai.meta.com/blog/rss/',
+                    type: 'blogs'
+                },
+                {
+                    name: 'NVIDIA AI Blog',
+                    url: 'https://blogs.nvidia.com/feed/',
+                    type: 'blogs'
+                },
+                {
+                    name: 'Towards Data Science',
+                    url: 'https://towardsdatascience.com/feed',
+                    type: 'blogs'
+                },
+                {
+                    name: 'Distill',
+                    url: 'https://distill.pub/rss.xml',
+                    type: 'blogs'
+                },
+                // AI Videos (YouTube RSS feeds)
+                {
+                    name: 'Two Minute Papers',
+                    url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg',
+                    type: 'videos'
+                },
+                {
+                    name: 'Computerphile',
+                    url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9-y-6csu5WGm29I7JiwpnA',
+                    type: 'videos'
+                },
+                {
+                    name: '3Blue1Brown',
+                    url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw',
+                    type: 'videos'
                 }
             ],
-            cacheExpiry: 2 * 60 * 60 * 1000,
-            cacheKey: 'ai_news_cache',
-            corsProxy: 'https://api.allorigins.win/get?url='
+            corsProxy: 'https://api.allorigins.win/get?url=',
+            corsProxyFallbacks: [
+                'https://cors-anywhere.herokuapp.com/',
+                'https://thingproxy.freeboard.io/fetch/',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ]
         };
         
         this.feeds = this.config.feeds;
-        this.cacheKey = this.config.cacheKey;
-        this.cacheExpiry = this.config.cacheExpiry;
+        this.corsProxy = this.config.corsProxy;
+        this.corsProxyFallbacks = this.config.corsProxyFallbacks;
 
         this.init();
     }
@@ -108,6 +178,11 @@ class AINewsDashboard {
                 this.handleSearch(e.target.value);
             });
         }
+
+        // Infinite scroll
+        window.addEventListener('scroll', () => {
+            this.handleScroll();
+        });
     }
 
     async loadNews(forceRefresh = false) {
@@ -115,19 +190,8 @@ class AINewsDashboard {
         console.log('Starting to load news...');
 
         try {
-            // Check cache first
-            if (!forceRefresh) {
-                const cached = this.getCachedData();
-                if (cached) {
-                    console.log('Using cached data');
-                    this.newsData = cached;
-                    this.filterAndDisplay();
-                    return;
-                }
-            }
-
+            // Always fetch fresh data - no caching
             console.log('Fetching from RSS feeds...');
-            // Fetch from RSS feeds
             const allNews = [];
             const promises = this.feeds.map(feed => this.fetchRSSFeed(feed));
             
@@ -157,7 +221,6 @@ class AINewsDashboard {
 
             console.log(`Total news items: ${allNews.length}`);
             this.newsData = allNews;
-            this.cacheData(allNews);
             this.filterAndDisplay();
 
         } catch (error) {
@@ -167,7 +230,7 @@ class AINewsDashboard {
     }
 
     async fetchRSSFeed(feed) {
-        const proxies = [this.config.corsProxy, ...(this.config.corsProxyFallbacks || [])];
+        const proxies = [this.corsProxy, ...this.corsProxyFallbacks];
         
         for (let i = 0; i < proxies.length; i++) {
             try {
@@ -176,7 +239,7 @@ class AINewsDashboard {
                 
                 // Create a timeout promise
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Request timeout')), 15000); // Increased timeout
+                    setTimeout(() => reject(new Error('Request timeout')), 10000);
                 });
                 
                 const fetchPromise = fetch(proxyUrl + encodeURIComponent(feed.url), {
@@ -222,13 +285,14 @@ class AINewsDashboard {
                     const pubDate = item.querySelector('pubDate')?.textContent?.trim();
 
                     if (title && link) {
+                        const date = this.parseDate(pubDate);
                         news.push({
                             title: this.cleanText(title),
                             url: link,
                             description: this.cleanText(description || ''),
                             source: feed.name,
                             type: feed.type,
-                            date: pubDate ? new Date(pubDate) : new Date(),
+                            date: date,
                             image: this.extractImageFromDescription(description),
                             author: this.extractAuthorFromDescription(description) || 'Unknown Author'
                         });
@@ -249,6 +313,35 @@ class AINewsDashboard {
         }
         
         return [];
+    }
+
+    parseDate(dateString) {
+        if (!dateString) return new Date();
+        
+        try {
+            // Try parsing various date formats
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+            
+            // Try parsing RFC 822 format
+            const rfc822Match = dateString.match(/(\w{3}), (\d{2}) (\w{3}) (\d{4}) (\d{2}):(\d{2}):(\d{2})/);
+            if (rfc822Match) {
+                const months = {
+                    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+                };
+                const [, , day, month, year, hour, minute, second] = rfc822Match;
+                return new Date(parseInt(year), months[month], parseInt(day), 
+                              parseInt(hour), parseInt(minute), parseInt(second));
+            }
+            
+            return new Date();
+        } catch (error) {
+            console.warn('Error parsing date:', dateString, error);
+            return new Date();
+        }
     }
 
     extractImageFromDescription(description) {
@@ -335,6 +428,10 @@ class AINewsDashboard {
     }
 
     formatDate(date) {
+        if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+            return 'Unknown date';
+        }
+
         const now = new Date();
         const diff = now - date;
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -348,6 +445,49 @@ class AINewsDashboard {
         } else {
             return date.toLocaleDateString();
         }
+    }
+
+    handleScroll() {
+        if (this.isLoading || !this.hasMoreNews) return;
+
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+
+        if (scrollTop + windowHeight >= documentHeight - 100) {
+            this.loadMoreNews();
+        }
+    }
+
+    async loadMoreNews() {
+        if (this.isLoading) return;
+
+        this.isLoading = true;
+        console.log('Loading more news...');
+
+        try {
+            // Load additional feeds or paginate existing data
+            const additionalNews = await this.fetchAdditionalNews();
+            
+            if (additionalNews.length > 0) {
+                this.newsData.push(...additionalNews);
+                this.newsData.sort((a, b) => new Date(b.date) - new Date(a.date));
+                this.filterAndDisplay();
+                console.log(`Loaded ${additionalNews.length} additional news items`);
+            } else {
+                this.hasMoreNews = false;
+                console.log('No more news available');
+            }
+        } catch (error) {
+            console.error('Error loading more news:', error);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async fetchAdditionalNews() {
+        // For now, return empty array - can be extended with more sources
+        return [];
     }
 
     switchTab(tab) {
@@ -433,28 +573,6 @@ class AINewsDashboard {
         document.getElementById('last-updated').textContent = now.toLocaleTimeString();
     }
 
-    cacheData(data) {
-        const cache = {
-            data: data,
-            timestamp: Date.now()
-        };
-        localStorage.setItem(this.cacheKey, JSON.stringify(cache));
-    }
-
-    getCachedData() {
-        const cached = localStorage.getItem(this.cacheKey);
-        if (!cached) return null;
-
-        try {
-            const cache = JSON.parse(cached);
-            const isExpired = Date.now() - cache.timestamp > this.cacheExpiry;
-            
-            return isExpired ? null : cache.data;
-        } catch {
-            return null;
-        }
-    }
-
     getSampleData() {
         return [
             {
@@ -474,7 +592,7 @@ class AINewsDashboard {
                 source: "Health Research",
                 type: "blogs",
                 date: new Date(Date.now() - 4 * 60 * 60 * 1000),
-                image: "https://images.unsplash.com/photo-1506905925346-21bda4d3266c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+                image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
                 author: "Ethan Carter"
             },
             {
